@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "trace-replay": {
+      "command": "python",
+      "args": [
+        "-m",
+        "trace_replay.mcp",
+        "--db",
+        "examples/demo_ctx_capture.db",
+        "--replay-db",
+        "examples/demo_trace_replay_runs.db",
+        "--entrypoints",
+        "examples.demo_agent:ENTRYPOINTS"
+      ]
+    }
+  }
+}

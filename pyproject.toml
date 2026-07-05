@@ -1,0 +1,36 @@
+[project]
+name = "trace-replay"
+version = "0.1.0"
+description = "MCP server for deterministic agent-run replay: resume a recorded trace from any step with modified prompt/model/params, past held constant."
+requires-python = ">=3.10"
+# ctx-capture isn't published to PyPI; install it editable from the sibling checkout first
+# (`pip install -e ../ctx-capture`) so this requirement resolves locally. See .github/workflows/ci.yml.
+dependencies = [
+    "ctx-capture",
+    "mcp>=1.26",
+    "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "jsonschema>=4.0",
+]
+
+[project.scripts]
+trace-replay-mcp = "trace_replay.mcp.__main__:main"
+
+[project.urls]
+Repository = "https://github.com/SathvikNayak123/trace-replay"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: trace-replay
+      # trace-replay consumes ctx-capture's schema/SDK directly; not published to PyPI, so it's
+      # checked out and installed as a sibling before trace-replay's own install.
+      # TODO: replace ORG with the actual GitHub org once ctx-capture has a real remote.
+      - uses: actions/checkout@v4
+        with:
+          repository: ORG/ctx-capture
+          path: ctx-capture
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ./ctx-capture
+      - run: pip install -e ./trace-replay[dev]
+      # test_fidelity.py is CI-blocking forever: it's the proof "the past is frozen" isn't just
+      # a design claim. See docs/DESIGN.md "Evaluating the server itself".
+      - run: pytest -v
+        working-directory: trace-replay
