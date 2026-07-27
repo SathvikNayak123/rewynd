@@ -68,3 +68,28 @@ async def test_invalid_tool_mode_is_error(mcp_server, seeded_source_trace_id):
             "set_tool_mode", {"replay_id": replay_id, "tool_name": "search", "mode": "BOGUS"}
         )
         assert result.isError is True
+
+
+async def test_set_tool_mode_live_on_mutating_tool_requires_acknowledgment(mcp_server, seeded_source_trace_id):
+    """set_tool_mode is config-only (docs/DESIGN.md), but a stored LIVE-for-a-mutating-tool
+    config becomes a live decision the moment a future replay reads it back — so it must be
+    gated the same way resume_from gates it at execution time (trace_replay.safety): rejected by
+    default (the tool here is unlabeled, so it defaults to mutating), only proceeding with an
+    explicit acknowledge_mutating=True."""
+    async with mcp_client(mcp_server) as session:
+        replay_result = await session.call_tool(
+            "replay_from_step", {"trace_id": seeded_source_trace_id, "step_index": 0}
+        )
+        replay_id = replay_result.structuredContent["replay_id"]
+
+        refused = await session.call_tool(
+            "set_tool_mode", {"replay_id": replay_id, "tool_name": "search", "mode": "LIVE"}
+        )
+        assert refused.isError is True
+
+        acknowledged = await session.call_tool(
+            "set_tool_mode",
+            {"replay_id": replay_id, "tool_name": "search", "mode": "LIVE", "acknowledge_mutating": True},
+        )
+        assert acknowledged.isError is False, acknowledged.content
+        assert acknowledged.structuredContent["ok"] is True

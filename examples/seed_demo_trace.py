@@ -20,12 +20,19 @@ from examples.demo_agent import AGENT_NAME, DemoClient, build_baseline_responses
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "demo_ctx_capture.db")
 
+# Fixed, not random: the demo agent's script is itself fixed (DemoClient always returns the same
+# canned responses), so pinning the id too means the README/quickstart trace_id is genuinely
+# reproducible from a clean clone instead of a stale example that never matches what this script
+# actually prints. `repo.save` is INSERT OR REPLACE, so re-running this script is idempotent.
+DEMO_TRACE_ID = "c740c832-bb5f-402b-8223-a5c9388bc69f"
+
 
 def main() -> None:
     recorder = TraceRecorder(agent_name=AGENT_NAME)
     client = DemoClient(build_baseline_responses())
     capturing_client = recorder.wrap_client(client, provider="demo-provider")
     record_demo_agent(recorder, capturing_client)
+    recorder.trace.trace_id = DEMO_TRACE_ID
 
     repo = SQLiteTraceRepository(DB_PATH)
     repo.save(recorder.trace)

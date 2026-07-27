@@ -95,6 +95,14 @@ def build_baseline_responses() -> list[FakeResponse]:
     ]
 
 
+def _budget_final_response() -> FakeResponse:
+    """The canned reply this fixed script gives when its system prompt is overridden toward
+    "budget-friendly" — so the README quickstart's documented override actually demonstrates a
+    changed outcome, not just a mechanically-completed replay. Still a deterministic stand-in
+    for a model, not a real one: it keys off a literal substring, nothing more."""
+    return _final_response(3, "Recommend Bear Lake Trailhead (free, no permit) for a budget-conscious hiker.")
+
+
 def record_demo_agent(recorder: Any, capturing_client: Any) -> None:
     """Runs the demo agent directly against the ctx-capture SDK to build a source trace. See
     examples/seed_demo_trace.py."""
@@ -128,7 +136,9 @@ def build_replay_entrypoint(canned_responses: list[FakeResponse]):
     from trace_replay.harness import ReplayContext
 
     def entrypoint(ctx: ReplayContext) -> None:
-        remaining = canned_responses[ctx.resume_step_index :]
+        remaining = list(canned_responses[ctx.resume_step_index :])
+        if ctx.overrides.system_prompt and "budget" in ctx.overrides.system_prompt.lower():
+            remaining[-1] = _budget_final_response()
         client = DemoClient(remaining)
         capturing_client = ctx.recorder.wrap_client(client, provider="demo-provider")
         messages = ctx.messages

@@ -3,11 +3,19 @@
     python examples/deepresearch_case_study/run_case_study.py
 
 Requires ANTHROPIC_API_KEY (the replay makes one real worker-stage LLM call — small real cost,
-same as the original run's per-worker cost, ~$0.01-0.02).
+same as the original run's per-worker cost, ~$0.01-0.02), and a local DeepResearch checkout that
+already ran the case study's source benchmark (see docs/CASE_STUDY.md "Reproducing"). Both paths
+below default to where this was originally dogfooded but are overridable so the script doesn't
+silently only work on one machine:
+
+    DEEPRESEARCH_DB=/path/to/deepresearch_dogfood.db \
+    DEEPRESEARCH_CORPUS=/path/to/2hop__635544_110949.json \
+    python examples/deepresearch_case_study/run_case_study.py
 """
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -23,16 +31,26 @@ from trace_replay.engine import resume_from
 from trace_replay.harness import ReplayOverrides
 from trace_replay.modes import ToolModeConfig
 
-DEEPRESEARCH_DB = r"C:\Users\user\Desktop\DeepResearch\deepresearch_dogfood.db"
+DEEPRESEARCH_DB = os.environ.get(
+    "DEEPRESEARCH_DB", r"C:\Users\user\Desktop\DeepResearch\deepresearch_dogfood.db"
+)
 SOURCE_RUN_ID = "df557b49fd804e3795d0f16c3c211f34"  # the Ratata question, real live run
-CORPUS_PATH = r"C:\Users\user\Desktop\DeepResearch\data\corpus\musique\2hop__635544_110949.json"
-RESUME_STEP_INDEX = 5  # worker:194ca732 — "Johan Ekelund's date of birth", the step that found nothing
+CORPUS_PATH = os.environ.get(
+    "DEEPRESEARCH_CORPUS", r"C:\Users\user\Desktop\DeepResearch\data\corpus\musique\2hop__635544_110949.json"
+)
+RESUME_STEP_INDEX = 5  # worker:03692d0efb0c5cf7 — "Johan Ekelund's date of birth", the step that found nothing
 NEW_SUB_QUESTION = "When was Johan Ekelund born?"
 
 TRACE_DB_PATH = str(Path(__file__).parent / "case_study_traces.db")
 
 
 def main() -> None:
+    if not os.path.exists(DEEPRESEARCH_DB):
+        raise SystemExit(
+            f"DeepResearch run store not found at {DEEPRESEARCH_DB!r}. Set DEEPRESEARCH_DB to "
+            "point at a deepresearch_dogfood.db produced by the benchmark run in "
+            "docs/CASE_STUDY.md 'Reproducing'."
+        )
     print("Importing DeepResearch run", SOURCE_RUN_ID, "...")
     source_trace = import_run(DEEPRESEARCH_DB, SOURCE_RUN_ID)
     repo = SQLiteTraceRepository(TRACE_DB_PATH)

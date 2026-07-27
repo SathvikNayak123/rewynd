@@ -2,7 +2,7 @@
 
 Resume a recorded agent run from any step with a different prompt, model, or param — and see
 what changes — without re-running the whole thing from scratch. An MCP server built on
-[ctx-capture](https://github.com/ORG/ctx-capture)'s trace schema; it doesn't define its own trace
+[ctx-capture](https://github.com/SathvikNayak123/ctx-capture)'s trace schema; it doesn't define its own trace
 format, it consumes ctx-capture's.
 
 ## What it is
@@ -36,11 +36,11 @@ in one $0.01 replay instead of a $0.08 full re-run: [docs/CASE_STUDY.md](docs/CA
 
 ## Setup
 
-**Requires [ctx-capture](https://github.com/ORG/ctx-capture)** — not on PyPI yet, so install both
+**Requires [ctx-capture](https://github.com/SathvikNayak123/ctx-capture)** — not on PyPI yet, so install both
 from source:
 
 ```bash
-git clone https://github.com/ORG/ctx-capture && pip install -e ./ctx-capture
+git clone https://github.com/SathvikNayak123/ctx-capture && pip install -e ./ctx-capture
 git clone https://github.com/SathvikNayak123/trace-replay && pip install -e "./trace-replay[dev]"
 ```
 
@@ -74,7 +74,10 @@ call `replay_from_step`:
 ```
 
 Steps 0-1 come back byte-identical to the original; step 2 onward re-runs live with the new
-prompt. `uvx trace-replay` will work the same way once published to PyPI.
+prompt — the original answer was "Recommend Mount Elbert for an experienced hiker; permit not
+required," the replayed one is "Recommend Bear Lake Trailhead (free, no permit) for a
+budget-conscious hiker." Call `diff_runs` on the two trace ids to see that outcome change plus the
+token/cost delta directly. `uvx trace-replay` will work the same way once published to PyPI.
 
 ## Limitations
 

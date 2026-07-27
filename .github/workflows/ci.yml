@@ -17,10 +17,9 @@ jobs:
           path: trace-replay
       # trace-replay consumes ctx-capture's schema/SDK directly; not published to PyPI, so it's
       # checked out and installed as a sibling before trace-replay's own install.
-      # TODO: replace ORG with the actual GitHub org once ctx-capture has a real remote.
       - uses: actions/checkout@v4
         with:
-          repository: ORG/ctx-capture
+          repository: SathvikNayak123/ctx-capture
           path: ctx-capture
       - uses: actions/setup-python@v5
         with:

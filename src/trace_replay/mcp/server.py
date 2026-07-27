@@ -36,7 +36,7 @@ from trace_replay.mcp.models import (
 )
 from trace_replay.mcp.replay_store import SQLiteReplayStore
 from trace_replay.modes import ToolModeConfig
-from trace_replay.safety import MutationSafetyError
+from trace_replay.safety import MutationSafetyError, is_mutating
 
 DEFAULT_MAX_RESPONSE_BYTES = 50_000
 _VALID_MODES = {"MOCK", "LIVE", "STUB"}
@@ -62,6 +62,14 @@ def _overrides_from_input(overrides: ReplayOverridesInput | None) -> ReplayOverr
         params=dict(overrides.params),
         injected_context_edits=dict(overrides.injected_context_edits),
     )
+
+
+def _first_recorded_call_for_tool(source_trace, tool_name: str):
+    for step in source_trace.steps:
+        for tc in step.tool_calls:
+            if tc.tool_name == tool_name:
+                return tc
+    return None
 
 
 def _shrink_diff_to_fit(result: DiffRunsResult, cap: int) -> DiffRunsResult:
@@ -243,13 +251,27 @@ def create_server(
         mode: str,
         stub_result: Any = None,
         step_index: int | None = None,
+        acknowledge_mutating: bool = False,
     ) -> SetToolModeResult:
         """Record a tool-mode override against a replay's stored config. v1 replays run to
         completion synchronously (see module docstring), so this configures what a future replay
-        of the same trace/step should use — it does not reach back into an already-finished run."""
+        of the same trace/step should use — it does not reach back into an already-finished run.
+        Setting LIVE for a tool that resolves mutating (trace flag, local safety registry, or
+        unknown-defaults-to-mutating — see trace_replay.safety) is rejected unless called with
+        acknowledge_mutating=True: the same explicit-opt-in gate resume_from enforces at
+        execution time, applied here too so the config can't be used to pre-stage a bypass."""
         if mode not in _VALID_MODES:
             raise ValueError(f"unknown mode: {mode!r} (expected MOCK, LIVE, or STUB)")
         record = replay_store.get(replay_id)  # raises KeyError if unknown -> protocol error
+
+        if mode == "LIVE" and not acknowledge_mutating:
+            source_trace = trace_repo.get_trace(record.source_trace_id)
+            recorded_call = _first_recorded_call_for_tool(source_trace, tool_name)
+            if is_mutating(tool_name, recorded_tool_call=recorded_call, tool_safety_registry=tool_safety_registry):
+                raise MutationSafetyError(
+                    tool_name,
+                    "set_tool_mode LIVE for a mutating tool requires acknowledge_mutating=True",
+                )
 
         tool_modes = record.tool_modes
         if step_index is not None:
