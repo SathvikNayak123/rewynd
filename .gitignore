@@ -4,3 +4,11 @@ __pycache__/
 .pytest_cache/
 *.db
 .claude/
+
+# Kept local-only, not published to GitHub.
+CLAUDE.md
+docs/AUDIT_REPORT.md
+docs/CASE_STUDY.md
+docs/DESIGN.md
+docs/registry-submission.md
+docs/proof/

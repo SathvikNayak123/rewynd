@@ -2,8 +2,7 @@
 
 All notable changes to this project are documented in this file. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
-[Semantic Versioning](https://semver.org/). Depends on ctx-capture's `schema_version` `1.0.x` —
-see [CLAUDE.md](CLAUDE.md).
+[Semantic Versioning](https://semver.org/). Depends on ctx-capture's `schema_version` `1.0.x`.
 
 ## [0.1.0] - 2026-07-05
 
@@ -57,5 +56,5 @@ Initial release.
   Nothing in the tool contract needs to change for a future async job runner.
 - `set_tool_mode` only updates a replay's stored config in v1; since execution is synchronous, it
   can't reach back into an already-finished run (there's no in-flight window to steer).
-- Single-agent, linear, Python agents only — see [docs/DESIGN.md § Non-goals](docs/DESIGN.md).
+- Single-agent, linear, Python agents only.
 - No Postgres-backed replay-run store yet (SQLite only, matching ctx-capture's own v0.1.0 state).

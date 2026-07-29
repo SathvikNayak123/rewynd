@@ -31,8 +31,7 @@ there.
 - **5 MCP tools**: `list_replayable_traces`, `replay_from_step`, `get_replay_status`, `diff_runs`,
   `set_tool_mode` — stdio and streamable-HTTP transports, bearer auth on HTTP.
 
-Full design rationale: [docs/DESIGN.md](docs/DESIGN.md). Real bug found with this tool, isolated
-in one $0.01 replay instead of a $0.08 full re-run: [docs/CASE_STUDY.md](docs/CASE_STUDY.md).
+Real bug found with this tool, isolated in one $0.01 replay instead of a $0.08 full re-run.
 
 ## Setup
 
@@ -44,8 +43,8 @@ git clone https://github.com/SathvikNayak123/ctx-capture && pip install -e ./ctx
 git clone https://github.com/SathvikNayak123/trace-replay && pip install -e "./trace-replay[dev]"
 ```
 
-Your agent needs to already be instrumented with ctx-capture, and needs one small adapter — see
-"Integration contract" in [docs/DESIGN.md](docs/DESIGN.md) — before trace-replay can resume it.
+Your agent needs to already be instrumented with ctx-capture, and needs one small adapter (the
+"integration contract") before trace-replay can resume it.
 
 ## How to use
 
@@ -94,8 +93,7 @@ token/cost delta directly. `uvx trace-replay` will work the same way once publis
   change its behavior after the fact.
 - **No Postgres-backed replay-run store yet** — SQLite only.
 
-Full list with reasoning: [CHANGELOG.md](CHANGELOG.md) and
-[docs/DESIGN.md § Non-goals](docs/DESIGN.md).
+Full list with reasoning: [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
