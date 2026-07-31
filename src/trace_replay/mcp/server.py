@@ -220,10 +220,17 @@ def create_server(
         trace_b: str,
         diff_type: str = "all",
         max_bytes: int | None = None,
+        outcome_stage: str | None = None,
     ) -> DiffRunsResult:
         """Trajectory diff between two traces (e.g. a source run and a replay of it): aligned
         action sequence, token/cost deltas, and outcome comparison. diff_type narrows the
-        response to "actions" | "tokens" | "cost" | "outcome" | "all" (default)."""
+        response to "actions" | "tokens" | "cost" | "outcome" | "all" (default).
+
+        outcome_stage names the stage whose output counts as the run's outcome (matched against
+        `model_call.params["stage"]`). Leave it unset for same-shaped traces; set it when the two
+        runs don't end with the same kind of step — comparing two topologies where one ends in
+        synthesis and the other in a post-synthesis reflection would otherwise diff a report
+        against a verdict. Falls back to last-step when the stage isn't present."""
         cap = max_bytes or max_response_bytes
         a = trace_repo.get_trace(trace_a)
         b = trace_repo.get_trace(trace_b)
@@ -238,7 +245,7 @@ def create_server(
         if diff_type in ("cost", "all"):
             result.cost_delta_usd = compute_cost_delta(a, b, default_cost_fn)
         if diff_type in ("outcome", "all"):
-            result.outcome_diff = compute_outcome_diff(a, b)
+            result.outcome_diff = compute_outcome_diff(a, b, outcome_stage)
 
         if canonical_size(result.model_dump(mode="json")) > cap:
             result = _shrink_diff_to_fit(result, cap)

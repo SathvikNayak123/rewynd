@@ -66,18 +66,42 @@ def compute_cost_delta(trace_a: Trace, trace_b: Trace, cost_fn: CostFn) -> float
     return estimate_trace_cost(trace_b, cost_fn) - estimate_trace_cost(trace_a, cost_fn)
 
 
-def _final_text_outcome(trace: Trace) -> str | None:
-    for step in reversed(trace.steps):
-        if step.model_call is None:
-            continue
-        choices = step.model_call.response.get("choices") or []
-        if choices:
-            return choices[0].get("message", {}).get("content")
-        return None
+def _text_of(step) -> str | None:
+    choices = step.model_call.response.get("choices") or []
+    if choices:
+        return choices[0].get("message", {}).get("content")
     return None
 
 
-def compute_outcome_diff(trace_a: Trace, trace_b: Trace) -> OutcomeDiff:
-    outcome_a = _final_text_outcome(trace_a)
-    outcome_b = _final_text_outcome(trace_b)
+def _final_text_outcome(trace: Trace, outcome_stage: str | None = None) -> str | None:
+    """The trace's outcome text. Default is the last step that made a model call, which is right
+    whenever both traces end with the same kind of step.
+
+    `outcome_stage` exists because that assumption breaks across a topology change: if one trace
+    ends with a synthesis step and the other moved synthesis earlier and now ends with a
+    post-synthesis reflection step, comparing last-step-to-last-step compares a report against a
+    verdict and reports a spurious change. Passing a stage name selects the last step tagged with
+    it (via `model_call.params["stage"]`, which is where a capture or importer records the
+    agent's own stage label) on each side, so the comparison stays apples-to-apples. Traces
+    without stage tags, or without that stage, fall back to last-step — so this never makes an
+    existing diff worse, it only refuses to be fooled when the information is there."""
+    if outcome_stage is not None:
+        tagged = [
+            step
+            for step in trace.steps
+            if step.model_call is not None and (step.model_call.params or {}).get("stage") == outcome_stage
+        ]
+        if tagged:
+            return _text_of(tagged[-1])
+
+    for step in reversed(trace.steps):
+        if step.model_call is None:
+            continue
+        return _text_of(step)
+    return None
+
+
+def compute_outcome_diff(trace_a: Trace, trace_b: Trace, outcome_stage: str | None = None) -> OutcomeDiff:
+    outcome_a = _final_text_outcome(trace_a, outcome_stage)
+    outcome_b = _final_text_outcome(trace_b, outcome_stage)
     return OutcomeDiff(trace_a_outcome=outcome_a, trace_b_outcome=outcome_b, changed=outcome_a != outcome_b)

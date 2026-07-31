@@ -13,9 +13,14 @@ over (see docs/CASE_STUDY.md "What the import can't recover"):
    (e.g. `{"n_results": 6}` for a search), not the full tool output — that's genuinely all
    DeepResearch's `record_tool_call` ever stored.
 
-One ctx-capture `Step` per DeepResearch `trajectory` row (plan/worker/reflection/synthesis all
-serialize to one LLM call each in DeepResearch's own model); tool_calls attach to the step whose
-`span_id` matches.
+One ctx-capture `Step` per DeepResearch `trajectory` row (every stage serializes to one LLM call
+each in DeepResearch's own model); tool_calls attach to the step whose `span_id` matches.
+
+Note on step counts after DeepResearch's `ef85170` topology rebuild: the ReAct subagent records an
+`agent_step` trajectory per loop iteration, on top of one `subagent` row per plan node, so an
+imported run now has substantially more steps than the pre-rebuild flat-`worker` runs did. Nothing
+here needed to change for that — the import is per-row and stage-agnostic — but a step index taken
+from an old run will not point at the same thing in a new one.
 """
 
 from __future__ import annotations
@@ -26,11 +31,20 @@ from datetime import datetime, timezone
 
 from ctx_capture.schema import ModelCall, Step, TokenCounts, ToolCall, Trace
 
+# Maps a DeepResearch trajectory `stage` to the RunConfig key naming the model that ran it, so
+# the imported ModelCall carries a real model name instead of "unknown". Covers both the current
+# topology (plan/subagent/agent_step/verify/synthesis/reflection, post-`ef85170`) and the flat
+# `worker` stage of pre-rebuild runs, so older run stores still import. `verify` is keyed to
+# reflection_model because that's what graph.py's verify hop actually calls.
 _STAGE_MODEL_KEY = {
     "plan": "planner_model",
-    "worker": "worker_model",
+    "subagent": "worker_model",
+    "agent_step": "worker_model",
+    "finalize_finding": "worker_model",
+    "verify": "reflection_model",
     "reflection": "reflection_model",
     "synthesis": "synthesis_model",
+    "worker": "worker_model",  # legacy: pre-rebuild runs
 }
 
 
@@ -67,7 +81,12 @@ def import_run(deepresearch_db_path: str, run_id: str) -> Trace:
         model_call = ModelCall(
             provider="anthropic",
             model=config.get(_STAGE_MODEL_KEY.get(traj["stage"], ""), "unknown"),
-            params={},
+            # Carries DeepResearch's own stage label through to the ctx-capture step, so a
+            # consumer can ask "which step was the synthesis?" rather than assuming it's the last
+            # one. diff_runs' `outcome_stage` reads exactly this — necessary because the pre- and
+            # post-rebuild topologies don't end with the same stage (old: ..., synthesis;
+            # new: ..., synthesis, reflection).
+            params={"stage": traj["stage"], "name": traj["name"]},
             messages=[{"role": "user", "content": json.dumps(input_obj)}],
             response={"choices": [{"message": {"role": "assistant", "content": json.dumps(output_obj)}}]},
             token_counts=TokenCounts(
