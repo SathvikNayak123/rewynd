@@ -5,6 +5,10 @@ what changes — without re-running the whole thing from scratch. An MCP server 
 [ctx-capture](https://github.com/SathvikNayak123/ctx-capture)'s trace schema; it doesn't define its own trace
 format, it consumes ctx-capture's.
 
+## Demo
+
+https://github.com/SathvikNayak123/rewynd/raw/main/docs/proof/demo.mp4
+
 ## What it is
 
 Debugging an agent normally means re-running it end to end and hoping it fails the same way
