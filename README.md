@@ -7,7 +7,7 @@ format, it consumes ctx-capture's.
 
 ## Demo
 
-https://github.com/SathvikNayak123/rewynd/raw/main/docs/proof/demo.mp4
+https://github.com/user-attachments/assets/c76dfdaf-a8dd-49f3-a21c-b634201c55cc
 
 ## What it is
 
